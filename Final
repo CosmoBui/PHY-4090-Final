@@ -8,8 +8,11 @@ from matplotlib.animation import FuncAnimation
 dt = 0.00005 
 dx = dt * 1000
 
-simulation_time=1 #sec
+simulation_time=2 #sec
 coeff_drag = 1.2
+open_fret = 0.6096
+pluck_pos = 0.1
+pluck_amp = 0.005
 
 ################################################################################################
 
@@ -17,12 +20,29 @@ coeff_drag = 1.2
 #source = https://www.daddario.com/products/guitar/acoustic-guitar/phosphor-bronze/ej26-phosphor-bronze-acoustic-guitar-strings-custom-light-11-52/ 
 
 # _string = [tension, diameter, frequency, name of string]
-e_string = [87.319, 0.000279, 330, 'E1 string'] #N, m, Hz
-B_string = [91.144,	0.000381, 247, 'B string']
-G_string = [113.252, 0.000558, 196, 'G string']
-D_string = [133.135, 0.000812, 147, 'D string']
-A_string = [128.687, 0.001066, 110, 'A string']
-E_string = [107.780, 0.001320, 82, 'E2 string']
+# e_string = [87.319, 0.000279, 330, 'E1 string'] #N, m, Hz
+# B_string = [91.144,	0.000381, 247, 'B string']
+# G_string = [113.252, 0.000558, 196, 'G string']
+# D_string = [133.135, 0.000812, 147, 'D string']
+# A_string = [128.687, 0.001066, 110, 'A string']
+# E_string = [107.780, 0.001320, 82, 'E2 string']
+
+# #tuned guitar
+e_string = [85.3, 0.000279, 330, 'E1 string'] #N, m, Hz
+B_string = [89.25,	0.000381, 247, 'B string']
+G_string = [120.5, 0.000558, 196, 'G string']
+D_string = [143, 0.000812, 147, 'D string']
+A_string = [137.5, 0.001066, 110, 'A string']
+E_string = [115.5, 0.001320, 82, 'E2 string']
+
+# # #E_minor tuned
+# e_string = [85.3, 0.000279, 330, 'E1 string'] #N, m, Hz
+# B_string = [84.4,	0.000381, 247, 'B string']
+# G_string = [114.3, 0.000558, 196, 'G string']
+# D_string = [143, 0.000812, 147, 'D string']
+# A_string = [137.5, 0.001066, 110, 'A string']
+# E_string = [115.5, 0.001320, 82, 'E2 string']
+
 strings = [e_string, B_string, G_string, D_string, A_string, E_string]
 #function to get mass of the string for certain length
 def StringMass(string_data, length):
@@ -97,7 +117,6 @@ def Guitar(tmax, dt, xmax, dx, pluck_pos, amplitude, string, b):
             y[i, n+1] = r * (y[i+1,n] + y[i-1,n] - 2* y[i,n]) - D * (y[i+2,n] - 4*y[i+1,n] + 6*y[i,n] - 4*y[i-1,n] + y[i-2,n]) - B * (y[i,n] - y[i,n-1]) - y[i,n-1] + 2 * y[i,n]
     return xrange, y, Nt
 
-
 #################################################################################################
 
 # #this section is to plot the intail position
@@ -144,29 +163,202 @@ def Guitar(tmax, dt, xmax, dx, pluck_pos, amplitude, string, b):
 # plt.show()
 
 ###############################################################################################
+#this section is to plot all strings over 1 period
+# #constants
+# pluck_pos = 0.1
+# pluck_amp = 0.005
+# open_fret = 0.6096
+# #setting up subplots
+# plt.figure(figsize=(9, 12))
+# fig, axs = plt.subplots(6, 1, figsize=(9, 12), sharex=True)  # sharex=True shares the x-axis
 
-pluck_pos = 0.1
-pluck_amp = 0.005
-open_fret = 0.6096
+# #run over all strings
+# for i, string in enumerate(strings):
+#     xrange, y, Nt = Guitar(simulation_time, dt, open_fret, dx, pluck_pos, pluck_amp, string, coeff_drag)
+#     #calulate plotting times
+#     period = 1/string[2]
+#     period_index = np.ceil(period/dt).astype(int)
+#     times = np.linspace(0, period_index, 5).astype(int)
+#     #plot for the plottin times
+#     axs[i].set_title(f'{string[3]}')
+#     axs[i].plot(xrange, y[:, times[0]], label='Time at 0s')
+#     axs[i].plot(xrange, y[:, times[1]], '--', label='Time at T/4')
+#     axs[i].plot(xrange, y[:, times[2]], '-.', label='Time at T/2')
+#     axs[i].plot(xrange, y[:, times[3]], '--', label='Time at 3T/4')
+#     axs[i].plot(xrange, y[:, times[4]], '-.', label='Time at T')
+# #adjust spacing
+# plt.subplots_adjust(hspace=0.5)
+# #legend to the side
+# axs[5].legend(loc='right', bbox_to_anchor=(1.15, 4.35))  # Add legend to the first subplot
+# #labels
+# plt.xlabel('Distance along the string (m)',fontsize=14)
+# plt.ylabel('Vertical Distance (m)',fontsize=14)
+# plt.gca().yaxis.set_label_coords(-0.07, 4.35) #move y axis label
 
-plt.figure(figsize=(9, 12))
-fig, axs = plt.subplots(6, 1, figsize=(9, 12), sharex=True)  # sharex=True shares the x-axis
+# plt.show()
 
-for i, string in enumerate(strings):
-    xrange, y, Nt = Guitar(simulation_time, dt, open_fret, dx, pluck_pos, pluck_amp, string, coeff_drag)
-    period = 1/string[2]
-    period_index = np.ceil(period/dt).astype(int)
+###############################################################################################
+#this section is to plot the fourier transform
+# # constants
+# simulation_time = 1
 
-    times = np.linspace(0, period_index, 5).astype(int)
+# # position along the string to record a y position
+# x_pos = open_fret / 2
+# x_pos_index = int(x_pos / dx)
 
-    axs[i].set_title(f'{string[3]}')
-    axs[i].plot(xrange, y[:, times[0]], label='Time at 0s')
-    axs[i].plot(xrange, y[:, times[1]], '--', label='Time at T/4')
-    axs[i].plot(xrange, y[:, times[2]], '-.', label='Time at T/2')
-    axs[i].plot(xrange, y[:, times[3]], '--', label='Time at 3T/4')
-    axs[i].plot(xrange, y[:, times[4]], '-.', label='Time at T')
+# # setting up subplots
+# plt.figure(figsize=(9, 12))
+# fig, axs = plt.subplots(6, 2, figsize=(9, 12))
 
-axs[0].legend(loc='right', bbox_to_anchor=(1.25, 5))  # Add legend to the first subplot
-plt.subplots_adjust(hspace=0.5)
+# # run over all strings
+# for i, string in enumerate(strings):
+#     xrange, y, Nt = Guitar(simulation_time, dt, open_fret, dx, pluck_pos, pluck_amp, string, coeff_drag)
 
-plt.show()
+#     y_oscillation = []  # storage array for the y position
+#     for j in range(Nt):  # Use a different variable for the inner loop
+#         y_oscillation.append(y[x_pos_index, j])
+
+#     # FFT
+#     yf = fft(y_oscillation)
+#     freq = fftfreq(Nt, dt)[:Nt // 2]
+#     # Find the index of the maximum amplitude
+#     max_amp_index = np.argmax(np.abs(yf[0:Nt//2]))
+
+#     # Get the fundamental frequency
+#     fundamental_freq = freq[max_amp_index]  
+
+#     #time values to plot y oscillation
+#     time_vals = np.arange(0, simulation_time+2*dt, dt)
+
+#     # Plotting time-domain signal
+#     axs[i, 0].plot(time_vals,y_oscillation)
+#     axs[i, 0].set_title(f'Oscillation of {string[3]}')
+#     axs[i, 0].set_xlabel('Time (s)')
+#     axs[i, 0].set_ylabel('Vertical Displacement (m)')
+
+#     # Plotting FFT
+#     axs[i, 1].plot(freq, 2.0/Nt * np.abs(yf[0:Nt//2]))
+#     axs[i, 1].set_title(f'FFT: Fundamental Frequency = {fundamental_freq:.2f}Hz')
+
+#     axs[i, 1].set_xlabel('Frequency (Hz)')
+#     axs[i, 1].set_ylabel('Amplitude')
+#     axs[i, 1].set_xlim(0, 500)
+# plt.tight_layout()
+# plt.show()
+
+#################################################################################################
+#this section is playing for playing a chord
+#function to calculate fret lengths
+def fret_len(fret_number):
+    fret_length = open_fret / 17.817
+    if fret_number == 0: #open fret
+        length_of_string = open_fret
+    else: #fret pressed down
+        length_of_string = open_fret - fret_length * fret_number - fret_length/2 #this last part is cause you press the fret in the middle
+    return length_of_string
+
+# Function to find local maxima in the data
+def max_finder(t_vals, x):
+    maximas = []
+    time_max = []
+    for i in range(1, len(x) - 1):
+        if x[i] > x[i - 1]:
+            if x[i] > x[i + 1]:
+                time_max.append(t_vals[i])
+                maximas.append(x[i])
+    return time_max, maximas
+
+#this function does a lot of things: it takes in the frets and strings played for a chord, it then runs the simlutaion for those strings and performs the fourier transform of the string
+#then it adds all of the oscillations of the strings into a fourier series which we then take a fourier transform of, then we find the maximas which are the frequencies that ocillate in the summed 
+#waves
+def playing_chord(frets, strings):
+    global simulation_time, dt, dx, pluck_amp, pluck_pos, coeff_drag
+
+    # position along the string to record a y position
+    x_pos = open_fret / 2
+    x_pos_index = int(x_pos / dx)
+
+    # setting up subplots
+    plt.figure(figsize=(9, 12))
+    fig, axs = plt.subplots(len(frets), 2, figsize=(9, 12))
+
+    y_vals = [] #storrage to get y values to sum up at the end
+
+    #perform simulation for all strings
+    for i, fret in enumerate(frets):
+        length = fret_len(fret)
+        xrange, y, Nt = Guitar(simulation_time, dt, length, dx, pluck_pos, pluck_amp, strings[i], 0)
+
+        y_oscillation = []  # storage array for the y position
+        for j in range(Nt): 
+            y_oscillation.append(y[x_pos_index, j])
+
+        y_vals.append(y_oscillation) #saving the y vals
+
+        # FFT
+        yf = fft(y_oscillation)
+        freq = fftfreq(Nt, dt)[:Nt // 2]
+
+        #find the index of the maximum amplitude
+        max_amp_index = np.argmax(np.abs(yf[0:Nt//2]))
+
+        #get the fundamental frequency
+        fundamental_freq = freq[max_amp_index]
+
+        #time values to plot y oscillation
+        time_vals = np.arange(0, simulation_time+2*dt, dt)
+
+        # Plotting time-domain signal
+        axs[i, 0].plot(time_vals, y_oscillation)
+        axs[i, 0].set_title(f'Oscillation of {strings[i][3]} with fret {frets[i]}')
+        axs[i, 0].set_xlabel('Time (s)')
+        axs[i, 0].set_ylabel('Vertical Displacement (m)')
+
+        # Plotting FFT
+        axs[i, 1].plot(freq, 2.0/Nt * np.abs(yf[0:Nt//2]))
+        axs[i, 1].set_title(f'FFT: Fundamental Frequency = {fundamental_freq:.2f}Hz')
+        axs[i, 1].set_xlabel('Frequency (Hz)')
+        axs[i, 1].set_ylabel('Amplitude')
+        axs[i, 1].set_xlim(0, 500)
+    plt.tight_layout()
+
+    #FFT of the fourier series
+    plt.figure(3)
+
+    sum_of_y = [sum(x) for x in zip(*y_vals)] # summing each y oscillation
+    yf = fft(sum_of_y)
+    freq = fftfreq(Nt, dt)[:Nt // 2]
+
+    plt.subplot(1,2,1)
+    plt.plot(time_vals, sum_of_y)
+    plt.ylabel('Vertical Displacement (m)')
+    plt.xlabel('Time (s)')
+    plt.title('Summed Oscillations of E-minor')
+
+    plt.subplot(1,2,2)
+    plt.plot(freq, 2.0/Nt * np.abs(yf[0:Nt//2]))
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Amplitude')
+    plt.xlim(0,1500)
+    plt.title('FFT of Summed Oscillations')
+    plt.tight_layout()
+
+    #finding the maximas and filtering out the low values
+    freq_maximas_raw, amplitude_maximas_raw = max_finder(freq, 2.0/Nt * np.abs(yf[0:Nt//2]))
+
+    amplitude_maximas_filtered = []
+    freq_maximas_filtered = []
+    for i, amplitude in enumerate(amplitude_maximas_raw):
+        if amplitude_maximas_raw[i] > 1e-5:
+            amplitude_maximas_filtered.append(amplitude_maximas_raw[i])
+            freq_maximas_filtered.append(freq_maximas_raw[i])
+
+    print(freq_maximas_filtered)
+    plt.show()
+
+#Playing Chords
+
+E_minor_frets = [0,1,1,0,0,0]
+E_minor_strings = strings
+playing_chord(E_minor_frets, E_minor_strings)
+
